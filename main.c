@@ -239,11 +239,12 @@ void GetDHT11()
 // 按键事件
 void KeyEvents()
 {
-	if(Key_1 == 0)
+	if(Key_1 == 0)   // 设置按钮
 	{
 		isSetting = 1;
 		setting++;
 		
+		// 显示设置 UI
 		LCDWriteCmd(0x0C);
 		LCDSetCursor(0, 0);
 		sprintf(LCDStr, "    SETTINGS    ");
@@ -252,6 +253,7 @@ void KeyEvents()
 		sprintf(LCDStr, "T:%2d  R:%2d  G:%2d", threshold[0], threshold[1], threshold[2]);
 		LCDPrintStr(LCDStr);
 		
+		// 切换光标位置
 		LCDWriteCmd(0x0F);
 		if(setting == 1)
 		{
@@ -273,7 +275,7 @@ void KeyEvents()
 		}
 		while(!Key_1);
 	}
-	else if(Key_2 == 0)
+	else if(Key_2 == 0)   // 增加按钮
 	{
 		if(isSetting == 0)
 			return;
@@ -306,7 +308,7 @@ void KeyEvents()
 		}
 		while(!Key_2);
 	}
-	else if(Key_3 == 0)
+	else if(Key_3 == 0)   // 减小按钮
 	{
 		if(isSetting == 0)
 			return;
@@ -339,7 +341,7 @@ void KeyEvents()
 		}
 		while(!Key_3);
 	}
-	else if(Key_4 == 0)
+	else if(Key_4 == 0)   // 开关按钮
 	{
 		flag = !flag;
 		while(!Key_4);
