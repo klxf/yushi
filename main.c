@@ -1,9 +1,10 @@
 #include <reg52.h>
 #include <intrins.h>
+#include <stdio.h>
 
 // 各种传感器
 sbit STUMBLE = P1^0;   // 跌倒传感器
-sbit DS18B20 = P1^1;   // 温度传感器
+sbit DHT_IO  = P1^1;   // DHT11 Data
 sbit ADC_CS  = P1^2;   // 模数转换 CS
 sbit ADC_CK  = P1^3;   // 模数转换 CLK
 sbit ADC_IO  = P1^4;   // 模数转换 DI&DO
@@ -31,12 +32,28 @@ unsigned char flag = 0;
 // 阈值 {瓦斯, 温度}
 int threshold[2] = {50, 30};
 
+// LCD 字符串缓存
+unsigned char LCDStr[16];
+
+
+// 初始化各种变量
+int gas = 0;
+int temp = 27;
+int rh = 38;
+
+unsigned char rec_dat[13];
+
 // 延时
 void delay(unsigned int ms)
 {
 	unsigned int i, j;
 	for(i = ms; i > 0; i--)
 		for(j = 115; j > 0; j--);
+}
+
+void delay_us(unsigned char n)
+{
+    while(--n);
 }
 
 // LCD 写命令
@@ -70,7 +87,7 @@ void LCDInit()
 {
 	LCDWriteCmd(0x38);   // 16*2显示，5*7点阵，8位数据口
 	LCDWriteCmd(0x0C);   // 不显示光标
-	LCDWriteCmd(0x06);   // 地址+1，当写入数据后光标右移
+	LCDWriteCmd(0x06);   // 当写入数据后光标自动右移
 	LCDWriteCmd(0x01);   // 清屏
 }
 
@@ -90,26 +107,144 @@ void LCDPrintStr(unsigned char *str)
 		LCDWriteData(*str++);
 }
 
-// LCD 显示数字
-void LCDPrintNum(unsigned char num)
+// 获取 ADC 数据
+void GetADC()
 {
-	LCDWriteData(num / 100 + 48);        // 百位
-	LCDWriteData(num % 100 / 10 + 48);   // 十位
-	LCDWriteData(num % 10 + 48);         // 个位
+	unsigned char i;
+	unsigned char dat1 = 0;
+	unsigned char dat2 = 0;
+	ADC_CK = 0;
+	ADC_IO = 1;
+	ADC_CS = 0;
+	ADC_CK = 1;
+	ADC_CK = 0;
+	ADC_IO = 1;
+	ADC_CK = 1;
+	ADC_CK = 0;
+	ADC_IO = 0;
+	ADC_CK = 1;
+	ADC_CK = 0;
+	ADC_IO = 1;
+	for(i=0; i<8; i++)			// 第一次读取
+	{
+		dat1 <<= 1;
+		ADC_CK = 1;
+		ADC_CK = 0;
+		if(ADC_IO)
+			dat1 = dat1 | 0x01;
+		else
+			dat1 = dat1 | 0x00;
+	}
+	for(i=0; i<8; i++)			// 第二次读取
+	{
+		dat2 >>= 1;
+		if(ADC_IO)
+			dat2 = dat2 | 0x80;
+		else
+			dat2 = dat2 | 0x00;
+		ADC_CK = 1;
+		ADC_CK = 0;
+	}
+	// 结束此次传输
+	ADC_IO = 1;
+	ADC_CK = 1;
+	ADC_CS = 1;
+
+	if(dat1 == dat2)			// 返回采集结果
+		gas = dat1;
+	else
+		gas = 0;
+	
+	gas = gas / 3;
+	if(gas > 100)
+		gas = 100;
+}
+
+void DHT11Start()
+{
+	DHT_IO=1;
+  delay_us(2);
+  DHT_IO=0;
+	delay(25);   //拉低延时18ms以上
+  DHT_IO=1;
+  delay_us(30);   //拉高 延时 20~40us，取中间值 30us
+}
+
+// 读取 1 Byte
+unsigned char DHT11RecByte()
+{
+  unsigned char i, dat = 0;
+	for(i=0;i<8;i++)
+	{
+		while(!DHT_IO);
+    delay_us(8);
+    dat <<= 1;
+    if(DHT_IO == 1)
+			dat += 1;
+		while(DHT_IO);
+	}
+  return dat;
+}
+// DHT11 数据
+void GetDHT11()
+{
+	unsigned char R_H, R_L, T_H, T_L, RH, RL, TH, TL, revise;
+  DHT11Start();
+  if(DHT_IO == 0)
+  {
+		while(DHT_IO == 0);
+		delay_us(40);
+    R_H = DHT11RecByte();
+    R_L = DHT11RecByte();
+    T_H = DHT11RecByte();
+    T_L = DHT11RecByte();
+    revise = DHT11RecByte();
+    delay_us(25);
+    if((R_H + R_L + T_H + T_L) == revise)   // 校验
+    {
+			RH = R_H;
+      RL = R_L;
+      TH = T_H;
+      TL = T_L;
+    }
+		rh = RH;     // 湿度
+		temp = TH;   // 温度
+	}
 }
 
 void main()
 {
-	int gas = 0;
-	int temp = 0;
-	int rh = 0;
-	
-	// 初始化
+	// 初始化 LCD
 	LCDInit();
+	
+	LCDSetCursor(0, 0);
+	sprintf(LCDStr, "   Welcome to   ");
+	LCDPrintStr(LCDStr);
+	sprintf(LCDStr, "      SBAS      ");
+	LCDSetCursor(0, 1);
+	LCDPrintStr(LCDStr);
+	
+	delay(1000);
+	
+	LCDSetCursor(0, 0);
+	sprintf(LCDStr, "                ");
+	LCDPrintStr(LCDStr);
+	LCDSetCursor(0, 1);
+	sprintf(LCDStr, "                ");
+	LCDPrintStr(LCDStr);
 	
 	while(1)
 	{
+		GetDHT11();
+		GetADC();
 		LCDSetCursor(0, 0);
-		LCDPrintStr("Test MSG");
+		sprintf(LCDStr, "T:%2d  R:%2d  G:%2d", temp, rh, gas);
+		LCDPrintStr(LCDStr);
+		LCDSetCursor(0, 1);
+		if(flag == 1)
+			sprintf(LCDStr, "* ON");
+		else
+			sprintf(LCDStr, "*OFF");
+		LCDPrintStr(LCDStr);
 	}
 }
