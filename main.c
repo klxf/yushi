@@ -58,7 +58,7 @@ void delay_ms(unsigned int ms)
 
 void delay_us(unsigned char n)
 {
-    while(--n);
+	while(--n);
 }
 
 // LCD 写命令
@@ -186,51 +186,51 @@ void GetADC()
 void DHT11Start()
 {
 	DHT_IO=1;
-  delay_us(2);
-  DHT_IO=0;
+	delay_us(2);
+	DHT_IO=0;
 	delay_ms(25);
-  DHT_IO=1;
-  delay_us(30);
+	DHT_IO=1;
+	delay_us(30);
 }
 
 // 读取 DHT11 1 Byte 数据
 unsigned char DHT11RecByte()
 {
-  unsigned char i, dat = 0;
+	unsigned char i, dat = 0;
 	for(i=0;i<8;i++)
 	{
 		while(!DHT_IO);
-    delay_us(8);
-    dat <<= 1;
-    if(DHT_IO == 1)
+		delay_us(8);
+		dat <<= 1;
+		if(DHT_IO == 1)
 			dat += 1;
 		while(DHT_IO);
 	}
-  return dat;
+	return dat;
 }
 
 // 获取 DHT11 数据
 void GetDHT11()
 {
 	unsigned char R_H, R_L, T_H, T_L, RH, RL, TH, TL, revise;
-  DHT11Start();
-  if(DHT_IO == 0)
-  {
+	DHT11Start();
+	if(DHT_IO == 0)
+	{
 		while(DHT_IO == 0);
 		delay_us(40);
-    R_H = DHT11RecByte();      // 湿度高四位
-    R_L = DHT11RecByte();      // 湿度低四位
-    T_H = DHT11RecByte();      // 湿度高四位
-    T_L = DHT11RecByte();      // 湿度低四位
-    revise = DHT11RecByte();   // 校验位
-    delay_us(25);
-    if((R_H + R_L + T_H + T_L) == revise)   // 对数据进行校验
-    {
+		R_H = DHT11RecByte();      // 湿度高四位
+		R_L = DHT11RecByte();      // 湿度低四位
+		T_H = DHT11RecByte();      // 湿度高四位
+		T_L = DHT11RecByte();      // 湿度低四位
+		revise = DHT11RecByte();   // 校验位
+		delay_us(25);
+		if((R_H + R_L + T_H + T_L) == revise)   // 对数据进行校验
+		{
 			RH = R_H;
-      RL = R_L;
-      TH = T_H;
-      TL = T_L;
-    }
+			RL = R_L;
+			TH = T_H;
+			TL = T_L;
+		}
 		rh = RH;     // 湿度
 		temp = TH;   // 温度
 	}
