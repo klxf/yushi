@@ -48,7 +48,7 @@ unsigned char setting = 0;
 
 unsigned char rec_dat[13];
 
-// 延时
+// 毫秒延时
 void delay_ms(unsigned int ms)
 {
 	unsigned int i, j;
@@ -56,6 +56,7 @@ void delay_ms(unsigned int ms)
 		for(j = 115; j > 0; j--);
 }
 
+// 微秒延时
 void delay_us(unsigned char n)
 {
 	while(--n);
@@ -96,13 +97,13 @@ void LCDInit()
 	LCDWriteCmd(0x01);   // 清屏
 }
 
-// LCD 调整光标位置：x-列，y-行
-void LCDSetCursor(unsigned char x, unsigned char y)
+// LCD 调整光标位置：column-列，line-行
+void LCDSetCursor(unsigned char column, unsigned char line)
 {
-	if(y == 0)
-		LCDWriteCmd(0x80 + x);
-	else if(y == 1)
-		LCDWriteCmd(0x80 + 0x40 + x);
+	if(line == 0)
+		LCDWriteCmd(0x80 + column);
+	else if(line == 1)
+		LCDWriteCmd(0x80 + 0x40 + column);
 }
 
 // LCD 显示字符串
@@ -167,6 +168,7 @@ void GetADC()
 		ADC_CK = 1;
 		ADC_CK = 0;
 	}
+	
 	// 结束此次传输
 	ADC_IO = 1;
 	ADC_CK = 1;
@@ -275,11 +277,11 @@ void KeyEvents()
 		}
 		while(!Key_1);
 	}
-	else if(Key_2 == 0)   // 增加按钮
+	else if(Key_2 == 0)          // 增加按钮
 	{
-		if(isSetting == 0)
+		if(isSetting == 0)         // 若不处于设置模式则 return
 			return;
-		if(setting == 1)
+		if(setting == 1)           // 加温度
 		{
 			threshold[0]++;
 			LCDSetCursor(2, 1);
@@ -288,7 +290,7 @@ void KeyEvents()
 			
 			LCDSetCursor(0, 1);
 		}
-		else if(setting == 2)
+		else if(setting == 2)      // 加湿度
 		{
 			threshold[1]++;
 			LCDSetCursor(8, 1);
@@ -297,7 +299,7 @@ void KeyEvents()
 			
 			LCDSetCursor(6, 1);
 		}
-		else if(setting == 3)
+		else if(setting == 3)      // 加瓦斯
 		{
 			threshold[2]++;
 			LCDSetCursor(14, 1);
@@ -308,11 +310,11 @@ void KeyEvents()
 		}
 		while(!Key_2);
 	}
-	else if(Key_3 == 0)   // 减小按钮
+	else if(Key_3 == 0)          // 减小按钮
 	{
-		if(isSetting == 0)
+		if(isSetting == 0)         // 若不处于设置模式则 return
 			return;
-		if(setting == 1)
+		if(setting == 1)           // 减温度
 		{
 			threshold[0]--;
 			LCDSetCursor(2, 1);
@@ -321,7 +323,7 @@ void KeyEvents()
 			
 			LCDSetCursor(0, 1);
 		}
-		else if(setting == 2)
+		else if(setting == 2)      // 减湿度
 		{
 			threshold[1]--;
 			LCDSetCursor(8, 1);
@@ -330,7 +332,7 @@ void KeyEvents()
 			
 			LCDSetCursor(6, 1);
 		}
-		else if(setting == 3)
+		else if(setting == 3)      // 减瓦斯
 		{
 			threshold[2]--;
 			LCDSetCursor(14, 1);
@@ -352,6 +354,7 @@ void KeyEvents()
 void Check()
 {
 	sprintf(tipStr, "      ");
+	// 摔倒判断
 	if(isTumble == 1)
 	{
 		LED1 = 0;
@@ -364,7 +367,7 @@ void Check()
 		LED1 = 1;
 		BUZZER = 1;
 	}
-	
+	// 温度判断
 	if(temp >= threshold[0])
 	{
 		LED2 = 0;
@@ -377,7 +380,7 @@ void Check()
 		LED2 = 1;
 		BUZZER = 1;
 	}
-	
+	// 湿度判断
 	if(rh >= threshold[1])
 	{
 		LED3 = 0;
@@ -390,7 +393,7 @@ void Check()
 		LED3 = 1;
 		MOTOR = 1;
 	}
-	
+	// 瓦斯判断
 	if(gas >= threshold[2])
 	{
 		LED4 = 0;
@@ -410,6 +413,7 @@ void main()
 	// 初始化 LCD
 	LCDInit();
 	
+	// 欢迎字幕
 	LCDSetCursor(0, 0);
 	sprintf(LCDStr, "   Welcome to   ");
 	LCDPrintStr(LCDStr);
@@ -418,8 +422,10 @@ void main()
 	LCDPrintStr(LCDStr);
 	
 	delay_ms(1000);
+	
 	sprintf(tipStr, "      ");
 	
+	// 清屏
 	LCDSetCursor(0, 0);
 	sprintf(LCDStr, "                ");
 	LCDPrintStr(LCDStr);
@@ -437,7 +443,8 @@ void main()
 		if(flag)
 			Check();    // 确认各值
 		
-		if(isSetting == 0){
+		if(isSetting == 0)
+		{
 			LCDSetCursor(0, 0);
 			sprintf(LCDStr, "T:%2d  R:%2d  G:%2d", temp, rh, gas);
 			LCDPrintStr(LCDStr);
@@ -448,6 +455,5 @@ void main()
 				sprintf(LCDStr, "*OFF            ");
 			LCDPrintStr(LCDStr);
 		}
-		
 	}
 }
