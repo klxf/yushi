@@ -46,8 +46,6 @@ int rh = 38;
 int gas = 0;
 unsigned char setting = 0;
 
-unsigned char rec_dat[13];
-
 // 毫秒延时
 void delay_ms(unsigned int ms)
 {
