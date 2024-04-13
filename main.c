@@ -55,10 +55,15 @@ void delay_ms(unsigned int ms)
 		for(j = 115; j > 0; j--);
 }
 
-// 微秒延时
-void delay_us(unsigned char n)
-{
-	while(--n);
+// 10微秒延时
+void delay_10us() {
+	unsigned char i;
+	i--;
+	i--;
+	i--;
+	i--;
+	i--;
+	i--;
 }
 
 // LCD 写命令
@@ -125,18 +130,18 @@ void ADCStart()
 {
 	ADC_CK = 0;   // 电平初始化
 	ADC_IO = 1;
-	delay_us(1);
+	delay_10us();
 	ADC_CS = 0;
 	ADC_CK = 1;   // 起始信号
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 1;
 	ADC_CK = 1;   // 通道选择第一位
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 0;
 	ADC_CK = 1;   // 通道选择第二位
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 1;
 }
