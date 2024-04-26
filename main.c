@@ -45,6 +45,7 @@ int temp = 27;
 int rh = 38;
 int gas = 0;
 unsigned char setting = 0;
+unsigned char DHT11Data, DHT11Flag;
 
 // 毫秒延时
 void delay_ms(unsigned int ms)
@@ -54,10 +55,15 @@ void delay_ms(unsigned int ms)
 		for(j = 115; j > 0; j--);
 }
 
-// 微秒延时
-void delay_us(unsigned char n)
-{
-	while(--n);
+// 10微秒延时
+void delay_10us() {
+	unsigned char i;
+	i--;
+	i--;
+	i--;
+	i--;
+	i--;
+	i--;
 }
 
 // LCD 写命令
@@ -124,18 +130,18 @@ void ADCStart()
 {
 	ADC_CK = 0;   // 电平初始化
 	ADC_IO = 1;
-	delay_us(1);
+	delay_10us();
 	ADC_CS = 0;
 	ADC_CK = 1;   // 起始信号
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 1;
 	ADC_CK = 1;   // 通道选择第一位
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 0;
 	ADC_CK = 1;   // 通道选择第二位
-	delay_us(1);
+	delay_10us();
 	ADC_CK = 0;
 	ADC_IO = 1;
 }
@@ -182,57 +188,68 @@ void GetADC()
 		gas = 100;
 }
 
-// DHT11 启动
-void DHT11Start()
-{
-	DHT_IO=1;
-	delay_us(2);
-	DHT_IO=0;
-	delay_ms(25);
-	DHT_IO=1;
-	delay_us(30);
-}
-
-// 读取 DHT11 1 Byte 数据
-unsigned char DHT11RecByte()
-{
-	unsigned char i, dat = 0;
-	for(i=0;i<8;i++)
-	{
-		while(!DHT_IO);
-		delay_us(8);
-		dat <<= 1;
-		if(DHT_IO == 1)
-			dat += 1;
-		while(DHT_IO);
+// DHT11 读取数据
+void ReadDHT11(void) {
+	unsigned char i, tempdata;
+	
+	for (i = 0; i < 8; i++) {
+		DHT11Flag = 2;
+		while ((!DHT_IO) && DHT11Flag++);
+		delay_10us();
+		delay_10us();
+		delay_10us();
+		tempdata = 0;
+		if (DHT_IO) tempdata = 1;
+		DHT11Flag = 2;
+		while ((DHT_IO) && DHT11Flag++);
+		if (DHT11Flag == 1) break;
+		
+		DHT11Data <<= 1;
+		DHT11Data |= tempdata;
 	}
-	return dat;
 }
 
-// 获取 DHT11 数据
-void GetDHT11()
-{
-	unsigned char R_H, R_L, T_H, T_L, RH, RL, TH, TL, revise;
-	DHT11Start();
-	if(DHT_IO == 0)
-	{
-		while(DHT_IO == 0);
-		delay_us(40);
-		R_H = DHT11RecByte();      // 湿度高四位
-		R_L = DHT11RecByte();      // 湿度低四位
-		T_H = DHT11RecByte();      // 湿度高四位
-		T_L = DHT11RecByte();      // 湿度低四位
-		revise = DHT11RecByte();   // 校验位
-		delay_us(25);
-		if((R_H + R_L + T_H + T_L) == revise)   // 对数据进行校验
-		{
-			RH = R_H;
-			RL = R_L;
-			TH = T_H;
-			TL = T_L;
+// DHT11
+void GetDHT11(void) {
+	unsigned char RH_data_H_temp, RH_data_L_temp, TP_data_H_temp, TP_data_L_temp, checkdata_temp;
+	unsigned char checkdata;
+	// 主机拉低18ms
+	DHT_IO = 0;
+	delay_ms(18);
+	DHT_IO = 1;
+	// 总线由上拉电阻拉高，主机延时20us
+	delay_10us();
+	delay_10us();
+	// 主机设为输入，判断从机响应信号
+	DHT_IO = 1;
+
+	if (!DHT_IO) { // T !
+		DHT11Flag = 2;
+		// 判断从机是否发出 80us 的低电平响应信号是否结束
+		while ((!DHT_IO) && DHT11Flag++);
+		DHT11Flag = 2;
+		// 判断从机是否发出 80us 的高电平，如发出则进入数据接收状态
+		while ((DHT_IO) && DHT11Flag++);
+
+		ReadDHT11();
+		RH_data_H_temp = DHT11Data;
+		ReadDHT11();
+		RH_data_L_temp = DHT11Data;
+		ReadDHT11();
+		TP_data_H_temp = DHT11Data;
+		ReadDHT11();
+		TP_data_L_temp = DHT11Data;
+		ReadDHT11();
+		checkdata_temp = DHT11Data;
+
+		DHT_IO = 1;
+
+		// 数据校验
+		checkdata = (RH_data_H_temp + RH_data_L_temp + TP_data_H_temp + TP_data_L_temp);
+		if (checkdata == checkdata_temp) {
+			rh = RH_data_H_temp;
+			temp = TP_data_H_temp;
 		}
-		rh = RH;     // 湿度
-		temp = TH;   // 温度
 	}
 }
 
