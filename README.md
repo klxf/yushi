@@ -13,5 +13,12 @@
 - `main.c` 程序源文件
 - `Objects/Project.hex` 编译得到的HEX文件
 
+## 实物照片
+> [!TIP]
+> 尚未完成，仅为阶段性成果
+
+![wx_20240506220819](https://github.com/klxf/yushi/assets/31070597/8098b385-8195-415d-baea-bea0d30a9d83)
+
+
 ## 开源协议
 Apache License 2.0
