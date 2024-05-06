@@ -31,6 +31,7 @@ sbit MOTOR   = P2^5;   // 风扇马达
 // 系统开关变量
 bit flag      = 0;   // 总开关
 bit isSetting = 0;   // 设置页面
+bit isDebug   = 0;   // Debug 页面
 
 // 阈值 {温度, 湿度, 瓦斯}
 int threshold[3] = {40, 60, 5};
@@ -56,7 +57,7 @@ void delay_ms(unsigned int ms)
 }
 
 // 10微秒延时
-void delay_10us() {
+void delay_10us(void) {
 	unsigned char i;
 	i--;
 	i--;
@@ -183,12 +184,15 @@ void GetADC()
 	else
 		gas = 0;
 	
-	gas = gas / 3;
-	if(gas > 100)
-		gas = 100;
+	if(!isDebug)
+	{
+		gas = gas / 100;    // 此处转换方式并不准确，仅作测试
+		if(gas > 100)
+			gas = 100;
+	}
 }
 
-// DHT11 读取数据
+// 读取DHT11数据
 void ReadDHT11(void) {
 	unsigned char i, tempdata;
 	
@@ -209,7 +213,7 @@ void ReadDHT11(void) {
 	}
 }
 
-// DHT11
+// 获取 DHT11 数据
 void GetDHT11(void) {
 	unsigned char RH_data_H_temp, RH_data_L_temp, TP_data_H_temp, TP_data_L_temp, checkdata_temp;
 	unsigned char checkdata;
@@ -360,7 +364,20 @@ void KeyEvents()
 	}
 	else if(Key_4 == 0)   // 开关按钮
 	{
-		flag = !flag;
+		if(isSetting)
+		{
+			isDebug = !isDebug;
+			// 清屏
+			LCDSetCursor(0, 0);
+			sprintf(LCDStr, "           DeBug");
+			LCDPrintStr(LCDStr);
+			LCDSetCursor(0, 1);
+			sprintf(LCDStr, "                ");
+			LCDPrintStr(LCDStr);
+		}
+		else
+			flag = !flag;
+		
 		while(!Key_4);
 	}
 }
@@ -458,7 +475,7 @@ void main()
 		if(flag)
 			Check();    // 确认各值
 		
-		if(isSetting == 0)
+		if((isSetting || isDebug) == 0)
 		{
 			LCDSetCursor(0, 0);
 			sprintf(LCDStr, "T:%2d  R:%2d  G:%2d", temp, rh, gas);
@@ -468,6 +485,15 @@ void main()
 				sprintf(LCDStr, "* ON      %s", tipStr);
 			else
 				sprintf(LCDStr, "*OFF            ");
+			LCDPrintStr(LCDStr);
+		}
+		if(isDebug)
+		{
+			LCDSetCursor(0, 0);
+			sprintf(LCDStr, "G:%d", gas);
+			LCDPrintStr(LCDStr);
+			LCDSetCursor(0, 1);
+			sprintf(LCDStr, "T:%2d  R:%2d", temp, rh);
 			LCDPrintStr(LCDStr);
 		}
 	}
